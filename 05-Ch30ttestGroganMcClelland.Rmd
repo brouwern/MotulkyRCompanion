@@ -1,0 +1,919 @@
+# Motulsky Chapter 30: Comparing Two Means: Unpaired T-Test  
+
+*Christina Grogan and Sara McClelland, with Nathan Brouwer.*
+
+## Introduction
+  
+In Chapter 30 of Intuitive Biostatistics, Motulsky compares the means from two groups/populations using an upaired t-test. An unpaired t-test is used to determine if two populations are different or if the observed difference between the populations is due to chance.  An un-paired t-test is also frequently referred to as a two-sample t-test.
+
+When doing an unpaired t-test, the null hypothesis (Ho) of the unpaired t-test is that there is no difference between the means (difference between the means = 0); the alternative hypothesis (Ha) is that there is a difference between the means.  A t-test analyzes whether the differece between these two means is likely to be different from zero.
+
+Before beginning to analyze your data with a t-test, it is important to note if your experimental design is more suited to an unpaired t-test or to a paired t-test, which are mathematically different statistical analyses (Whitlock and Schluter, 2009). 
+
+> "In the paired design, both treatments are applied to every sampled unit. In the two-sample design, each treatment group is composed of an independent random sample of units. Paired designs are usually more powerful than unpaired designs, because they control for a lot of the extraneous variation between plots or sampling units that sometimes obscures the effects we are looking for. Very often, though, it is just not possible to collect data in a paired format." (Whitlock and Schluter, 2009)
+
+## Un-paried t-tests in biology
+
+T-tests are used to analyze data in many different scientific disciplines. When researchers are comparing the difference in one variable between two populations these types of analyses can be found.  Volova et al., (2003) used t-tests to analyze the difference between two types of suture materials (PHB vs. PHB/PHV). Frazier et al., (2012) used t-tests when analyzing differences between demographic information of men and women in a study researchng the sex differences of patients with symptoms of depression after being hospitalized with acute coronary syndrome. Hamer et al., (2003) found statistical differences between logged and unlogged butterfly habitats in northern Borneo using t-test (Hamer et al., 2003).  T-tests are also frequently used in pain testing to compare the effects of a noxious stimulus versus controls (Crock et al., 2012; Wager et al., 2004).  
+  
+
+## Assumptions of the unpaired t-test 
+
+On pages 222-224, Motulsky outlines that assumptions of unpaire t-tests
+  
+* Your data comes from subjects that were randomly sampled.  
+* Your subjects/data are independent from one another.  
+* The values you're measuring are normally distributed in the population.  
+* Your two populations have equal variances (this is also known as homogeneity of variance or homoscedasticity).  
+  
+Note: To determine equality of variance: In Motulsky, on pages 221-223, he discusses using the F-Test to compare the variances of your populations. However, this is problematic because the F-test assumes that a population is normally distributed. If your population is non-normally distributed this can significantly affect the outcome of the F-test [("F-test of equality of variances")] (https://en.wikipedia.org/wiki/F-test_of_equality_of_variances). Some people also test for equal variances using Levene's test, Bartlett's test, or the Brown-Forsythe test; however "...these tests create experiment-wise Type-I error inflations when conducted as a test of the assumption of homoscedasticity prior to a test of effects" [(ibid.)] (https://en.wikipedia.org/wiki/F-test_of_equality_of_variances).  
+  
+
+## Unpaired t-test in R
+  
+Doing an unpaired T-test in R is simple.  You only need to ensure that your data from two populations is properly entered and formatted and then use the t.test() function. The most important assumption when doing an unpaired t-test is that your groups have equal variances.  R automatically assumes that you're working with populations that have unequal variance and uses the Welch's modification to correct for unequal variances.  This correction can be used even with equal variances, but may provide less power to detect differences (Motulsky, 2010). If you're sure that your populations have equal variances and you want to run a t.test() without using Welch's modification, you can do so by adding "var.equl=T"" to your t.test() function.  
+  
+  
+  
+## This tutorial  
+
+In the following tutorial we will demonstrate how to take the data provided by Motulsky (Table 30.1, page 220), analyze it in R, and produce the key figures of Chapter 30.
+
+
+## Packages used in this tutorial    
+
+The packages used for this tutorial are:
+
+* reshape2: allows you to stack your dataframe i.e. change the data layout  
+* pander: for making basic tables  
+* beeswarm: use for beeswarm plots  
+* doBy: for SummaryBy to calculate/means  
+* plotrix: use to allow doBy to calculate the standard error using the std.error() fuction  
+* gplots: for barplot2  
+
+## Key R Functions Used in this tutorial 
+
+* abline()
+* axis()
+* beeswarm::beeswarm()
+* c()  
+* data.frame()
+* function()
+* lm()
+* mean()
+* melt()
+* mtext()
+* names()
+* pander()
+* par() 
+* paste()
+* gplots::plotCI()
+* points()
+* rbind()
+* round()
+* rownames()
+* sd()
+* summary()
+* doBy::summaryBy()
+# plotrix::std.error()
+* str() 
+* text()
+* t.test()
+
+## Key Vocabulary  
+
+* mean  
+* standard deviation  
+* standard error of the mean (SE; SEM)
+* 95% confidence interval (95% CI)
+* t-test  
+* Welch's modification  
+* p-value  
+
+
+## Motulsky's Example Data   
+
+In order to familiarize the reader with when and how to use unpaired t-tests, Motulsky provides raw data on the maximal relaxation of rat bladder muscles caused by norepinephrine in old and young rats (Table 30.1; page 220). This gives us the opportunity to compare the means from two groups and determine if those groups are different.   
+
+## Data Entry  
+
+**Original Data source:**    
+These dara are originally from: 
+Frazier E. P., Schneider T., and Michel M. C. (2006). Effects of gender, age and hypertension on beta-adrenergic receptor function in rat urinary bladder. Naunyn-Schmiedeberg's Archives of Pharmacology, 373: 300-309.  
+
+
+The first thing we need to do is enter the raw data on page 220 of Motulsky into R. There are a number of different ways to load data into R.    
+  
+### Entering data by hand directly into R
+
+```{r}
+
+#enter old rat data using <- c(). This assigns numbers to objects or vectors.
+old <- c(20.8,2.8,50.0,33.3,29.4,38.9,29.4,52.6,14.3)
+
+#enter young rat data using <- c()
+young <- c(45.5,55.0,60.7,61.5, 61.1, 65.5, 42.9, 37.5, NA)
+
+#put the old and young rat data/objects into one data set or data frame using <-data.frame()
+rat.bladder.df <- data.frame(old,young)
+
+#look at the entered data
+rat.bladder.df
+
+```
+
+## Loading data from a spreadsheet
+
+You can also use data that is entered in Excel and saved as a  .csv file to load data into R.  First enter the data in an Excel file and save it as a .csv file.  Note: Before loading your data file into R, the file must be in your working directory. In RStudio, go to Session -> Set Working Directory -> Choose Directory. Use this to choose the location on your computer where the file is located.  
+
+You can then use list.files() to see all of the files in your working directory.  To load the file you want you can use 
+
+
+```{r, eval=FALSE}
+OBJECT.NAME <- read.csv(file="..")
+```
+
+With the file name should be within the quotations.  
+
+
+
+## Preparing data for analysis
+
+The data in Table 30.1 needs to be reformatted in order to get summary statistics and run the t-test. In order to reformat the data you'll need the library(reshape2) and can then use the melt() function to have two new columns: Rat age and Maximal Relaxation, referred to in Motulsky as %Emax.
+
+
+
+```{r}
+library(reshape2)
+#Stack the data (in other words change the format of your dataframe)
+rat.bladder.df.stack <- melt(rat.bladder.df, 
+                             variable.name="rat.age",   
+                             value.name="percent.E.max")
+
+#look at how your data is now formatted
+rat.bladder.df.stack
+
+```
+
+
+## Plotting the raw Data
+
+Using the "stacked" data we made above with the melt() function, wwe'll Recreate Figure 30.1 on page 220 in Motulsky where he plots the raw data.  We'll do this using the beeswarm library.
+
+
+### Notes on producing figures
+
+**Key arguments for plotting raw datapoint**
+
+* mfrow = c(number of rows, number of columns); allows you to plot multiple graphs together  
+* ylim = adjust the y axis  
+* col = sets colors; since there are 2 groups there are two values within the c(...)  
+* bg = sets the colors of the background of the symbol, such as the the inside of the circle
+* pch = sets symbol on the graph; 21 is a circle with a border  
+* labels = in beeswarm() sets the group lables  
+* ylab = and xlab =set the axis labels  
+
+**Calculating and plotting the mean**
+* summarBy() is used to calcualte means  
+* points() is used to overlay the means on the raw data  
+* pch = 3 sets the plotting symbol to be a "+", you could use "*" but this is tiny and hard to see  
+* cex = is "character expansion" and increase the size of the points  
+
+    
+```{r}
+library(beeswarm) 
+
+#Set your plot area for one graph. 
+par(mfrow = c(1,1))
+
+#Adjust the margins of your plot area. 
+par(mar = c(3,5,2,2))
+
+#Use beeswarm to plot the raw data points Y variable ~ x variable, data = data.frame
+beeswarm(percent.E.max ~ rat.age, data= rat.bladder.df.stack, ylim=c(0,75),  pch=21, col=c("black", "black"),bg=c("black","grey"), labels= c("Old","Young"), xlab="", ylab="%Emax")
+
+
+#Note:This gives you the raw data points but does not have the line for the means drawn on the graph. 
+#To do that you need to calculate the means then use points() to draw them on.
+
+
+```
+
+*To find the means you'll need library(doBy) - this allows you to use summaryBy() which gives you the ability to find information of your y variable by separating those data out by the x variable.  
+
+```{r}
+#Load the libraries you need to calculate the means using SummaryBy()
+library(doBy)
+library(plotrix)
+
+#Calculate means
+#There is an NA value among the young rats. You have to tell R to skip it by including "na.rm = T".
+rat.bladder.means <- summaryBy(percent.E.max ~ rat.age, data = rat.bladder.df.stack, na.rm = T)
+
+#Look at means
+rat.bladder.means
+```
+
+
+```{r}
+#Remake Figure 30.1 with the means of the data on the graph.
+#Note you need library(beeswarm) for this but this library was already loaded above.
+
+#Set your plot area for one graph.
+par(mfrow = c(1,1))
+
+#Adjust the margins of your plot area.
+par(mar = c(3,5,2,2))
+
+#Use beeswarm to plot the raw data points Y variable ~ x variable, data = data.frame
+beeswarm(percent.E.max ~ rat.age, data= rat.bladder.df.stack, ylim=c(0,75),  pch=21, col=c("black", "black"),bg=c("black","grey"), labels= c("Old","Young"), xlab="", ylab="%Emax")
+
+
+#Now that you have the means you can plot those using points() to draw.
+points(percent.E.max.mean ~ rat.age, data = rat.bladder.means, pch = 3, cex=4)
+
+```
+ 
+ 
+## Making a basic data table 
+
+The following code wil; recreate Table 30.1 on page 220.
+
+* You can create nice tables in R with the library(pander)
+* see http://rapporter.github.io/pander/#markdown-tables for more information about tables and pander() 
+
+
+```{r}
+library(pander)
+
+#Create data table
+pander(rat.bladder.df,
+       caption = "Table 30.1. Maximal relaxation of muscle strips of old and young rat bladders with high concentrations of norepinephrine (Frasier et al., 2006).")
+
+```
+ 
+ 
+
+## Making a more complex data table 
+
+Now we'll recreate Table 30.2 on page 221 in Motulsky.
+
+
+### Run the analyses needed to determine the results of an unpaired t-test 
+
+We'll firt analyse the data in Table 30.2)
+
+In order to analyze the data and recreate Table 30.2 you'll need to:  
+1. Run an unpaired t-test on the rat bladder data to calcualte the t-statistic, degrees of freedom (df), and p-value to determine if old rats and young rats are different groups. You can then use this to recreate the first/top part of the table.  
+2. Determine the means and standard error of the mean for the old rats and the young rats. You can then use this to recreate the second/middle part of the table.  
+3. Find the difference and standard error of the mean for the difference between the means, the 95% confidence intervals, and the R^2 values.You can then use this to recreate the third (or bottom) part of the table.  
+4. Put all the parts of the table together to recreate Table 30.1  
+
+
+### Recreating the first (top) part of Table 30.2
+
+Running an unpaired t-test on the rat bladder data in Motulsky to determine the t-statistic, degrees of freedom, and p-value to determine if old rats and young rats are different groups.
+  
+Note that when running a t-test in R, R automatically uses a Welch's modification to correct for unequal variances in your two different populations.  To run a t-test without using Welch's modification (as done in Motulsky) you must use var.equal=T in your t-test equation.  
+
+  
+```{r}
+
+#t.test(y variable ~ x variable, data = YOUR.NAMED.DATAFRAME, var.equal=T)
+t.test(percent.E.max ~rat.age, data=rat.bladder.df.stack, var.equal=T)
+
+#save t-test results under rat.bladder.t.test using <-
+rat.bladder.t.test <- t.test(percent.E.max ~rat.age, data=rat.bladder.df.stack, var.equal=T)
+
+
+```
+
+### Results of the Two Sample t-test:  
+
+The output of the t-test looks like this
+
+```{r, eval=FALSE}
+rat.bladder.t.test
+```
+
+
+
+       
+### Extract information from the t-test output
+
+We'll extract the necessary output from t-test and save it separetly into objects in R to use in building Table 30.2.
+
+```{r}
+
+#Make an object for the p-value.  Note: This is how you can make an object using any output from from the t-test.
+rat.p.value <- rat.bladder.t.test$p.value
+
+#Runding the p-value.  The number is how many places after the decimal point.
+rat.p.value <- round(rat.p.value,4)
+
+#Make an object and save the rounded t-statistic.
+rat.t.statistic <- rat.bladder.t.test$statistic
+rat.t.statistic <- round(rat.t.statistic,3)
+
+#Make an object and save the degrees of freedom
+rat.degf <- rat.bladder.t.test$parameter
+
+#Save stars to use to denote significance in Table 30.2
+rat.stars <- c("**")
+
+#Save the words "two tailed" for building Table 30.2
+tails <- "Two tailed"
+
+#Save your t-statistic and degrees of freedom together in the same format found in Table 30.2
+rat.df.and.t <-paste(rat.t.statistic, rat.degf,sep = ", ")
+
+```
+
+### Building the first (top) part of Table 30.2
+
+```{r}
+#The names f each row in column 1
+my.rownames <- c("P Value", "P Value Summary", "Are means significantly different? (P<0.05)", "One- or two-tail P value?", "t, df")
+
+#the information in column 2
+statoutput <- c(rat.p.value, rat.stars, "Yes", tails, rat.df.and.t)
+
+#put these into a dataframe
+table30.2 <- data.frame(my.rownames,statoutput)
+
+#change the names of the columns
+names(table30.2) <- c("UNPAIRED t TEST", " ")
+
+
+#Use pander make this table look like the first (top) part of Table 30.2
+#Note: you need library(pander) here but we loaded it above.
+
+pander(table30.2, justify="left")
+
+```
+
+
+### Recreating the second (middle) part of Table 30.2) 
+
+To make the middle part of the talbe, we need to determine the means and standard error of the mean for the old rats and the young rats.  There are a number of ways to find the mean, standard deviation and standard error of the mean using R.  Here, we'll do the basic math to find these values and save them as an objet.  
+  
+  
+**NOTE:** Motulksy has a typo in Table 30.2  He writes "Column A" but reports the data for Young rats, which are in the 2nd columns of Table of 30.2, which most peole would consider column B.   
+  
+
+First, we'll Calculate and save all of the data you need for young rats (mean, SD, n, SEM):
+
+```{r}
+
+#Calculate the mean with mean(); then list the name of your data.frame; the $ allows you to access information in
+#that data.frame - here we want to access the mean of the young rats. na.rm=T tells R to ignore the NA where the
+#young rats are missing a value. 
+rat.young.mean<-mean(rat.bladder.df$young, na.rm=T)
+
+#Save the rounded young rat mean
+rat.young.mean<-round(rat.young.mean, 2)
+
+#Calculate and save the young rat standard deviation
+rat.young.sd <- sd(rat.bladder.df$young, na.rm=T)
+
+#Save the young rat sample size (n)
+rat.young.n <- c(8)
+
+#Calculate and save the rounded young rat standard error of the mean (SEM)
+#Note: SEM = standard deviation divided by the square root of the sample size.
+rat.young.SEM <- (rat.young.sd/(sqrt(rat.young.n)))
+rat.young.SEM <- round(rat.young.SEM, 3)
+
+#Save the young rat mean and SEM as the same format found in Table 30.2
+young.mean.SEM.pre<-paste(rat.young.mean,rat.young.SEM, sep=" ± ")
+young.mean.SEM<-paste(young.mean.SEM.pre, "n=8", sep=", ")
+
+```
+
+Next we'll Calculate and save all of the data you need for old rats (mean, SD, n, SEM):
+```{r}
+
+#Calculate and then save the rounded old rat mean
+rat.old.mean<-mean(rat.bladder.df$old, na.rm=T)
+rat.old.mean<-round(rat.old.mean, 2)
+
+#Calculate and save the old rat standard deviation
+rat.old.sd <- sd(rat.bladder.df$old, na.rm=T)
+
+#Save the old rat sample size (n)
+rat.old.n <- c(9)
+
+#Calculate and save the rounded old rat standard error of the mean
+rat.old.SEM <- (rat.old.sd/(sqrt(rat.old.n)))
+rat.old.SEM <- round(rat.old.SEM, 3)
+
+#Save the old rat mean and SEM as the same format found in Table 30.2
+old.mean.SEM.pre<-paste(rat.old.mean,rat.old.SEM, sep=" ± ")
+old.mean.SEM<-paste(old.mean.SEM.pre, "n=9", sep=", ")
+```
+
+
+Now we'll Set up the proper rows for the line "HOW BIG IS THE DIFFERENCE?"" Mean +/- SEM lines in Table 30.2
+
+```{r}
+#Create the mean +/- SEM for the young rats (+/- separates any terms here)
+young.mean.SEM.pre<-paste(rat.young.mean,rat.young.SEM, sep=" ± ")
+
+#Adds the sample size after the the mean +/- SEM using , as the separater for the young rats
+young.mean.SEM<-paste(young.mean.SEM.pre, "n=8", sep=", ")
+
+#Create the mean +/- SEM for the old rats (+/- separates any terms here)
+old.mean.SEM.pre<-paste(rat.old.mean,rat.old.SEM, sep=" ± ")
+
+#Adds the sample size after the the mean +/- SEM using , as the separater for the old rats
+old.mean.SEM<-paste(old.mean.SEM.pre, "n=9", sep=", ")
+
+#View the layout of these terms
+young.mean.SEM
+old.mean.SEM
+
+```
+
+### Building the second (middle) part of Table 30.2
+
+```{r}
+#The names of each row in column 1
+my.namesb <- c("Mean ± SEM of column A", "Mean ± SEM of column B")
+
+#The information in column 2
+statoutputb <- c(old.mean.SEM, young.mean.SEM)
+
+#put these into a dataframe
+Table30.2b <- data.frame (my.namesb, statoutputb)
+
+#change the names of the columns
+names (Table30.2b) <- c("HOW BIG IS THE DIFFERENCE?", " ")
+
+#Use pander make this table look like the first (top) part of Table 30.2
+#Note: you need library(pander) here but we loaded it above.
+pander(Table30.2b, justify="left")
+
+```
+
+
+### Recreating the third (bottom) part of Table 30.2
+
+This involved finding the difference and standard error of the mean for the difference between the means; finding the 95% confidence intervals; finding the R^2 values.
+  
+First we need to calculate the difference between the means.
+
+```{r}
+#Calculate and save the rounded difference betweem the means for Table 30.2
+rat.mean.diff<-rat.young.mean - rat.old.mean 
+rat.mean.diff<-round(rat.mean.diff,2)
+
+```
+
+Before calculating +/- SEM of the diff between means, we need to update our original data.frame with additional data that we've calculated.
+
+```{r}
+
+#Save the rat group means in a specific format for updating your original dataframe
+rat.means <- c(rat.old.mean, rat.young.mean)
+
+#Save the rat group SD in a specific format for updating your original dataframe
+rat.SD <- c(rat.old.sd, rat.young.sd)
+
+#Save the rat group sample sizes (n) in a specific format for updating your original dataframe
+rat.N <- c(rat.old.n, rat.young.n)
+
+#Save the difference of the means in a specific format for updating your original dataframe
+rat.diff.means <- c(rat.mean.diff, NA)
+
+#Add rat means to your original rat bladder dataframe
+rat.bladder.df2 <- rbind(rat.bladder.df, rat.means) 
+
+#Add rat standard deviation to your original rat bladder dataframe
+rat.bladder.df2 <- rbind(rat.bladder.df2, rat.SD) 
+
+#Add rat sample sizes to your original rat bladder dataframe
+rat.bladder.df2 <- rbind(rat.bladder.df2, rat.N) 
+
+#Add difference of the means to your original rat bladder dataframe
+rat.bladder.df2 <- rbind(rat.bladder.df2, rat.diff.means) 
+
+#Rename the rows of your original dataframs so that you can quickly use those names in other calculations in R using $
+rownames(rat.bladder.df2) <- c("1","2", "3","4","5","6","7","8","9", "means", "SD", "N", "diff means")
+
+
+```
+
+In order to calculate the error of the difference of the means, you'll need to calculate the **pooled variance** first.   
+  
+```{r}
+
+## Note the formulas squares SD to get variance
+var.pooled <- function(df1,df2,s1,s2){
+  (df1*s1^2 + df2*s2^2)/(df1+df2)}
+
+## extract N and SD for easy access
+dfs <- rat.bladder.df2["N", ]
+SDs <- rat.bladder.df2["SD",]
+
+## Apply function for pooled sd
+var.pool <-var.pooled(dfs[1],dfs[2],SDs[1],SDs[2])
+
+## Add to pooled variance dataframe
+rat.bladder.df2["var.pooled",] <- c(var.pool,NA)
+
+```
+
+Then we need to cCalculating standard error of the difference of the means.
+
+```{r}
+
+# Standard error of difference
+SE.diff <- function(var.pool, n1,n2){
+  sqrt(var.pool*(1/n1 + 1/n2))}
+
+#Apply function
+se.dif <- SE.diff(var.pool,dfs[1],dfs[2])  
+
+#Update data.frame
+rat.bladder.df2["SE.diff",] <- c(se.dif, NA)
+
+rat.mean.diff.sem<-c(6.657)
+
+rat.diff.sem<-paste(rat.mean.diff, rat.mean.diff.sem, sep=" ± ")
+
+```
+
+
+Extract the 95% CI for Table 30.2 
+
+```{r}
+#This is calculating the 95% confidence intervals for the difference of the means
+rat.CI<-(rat.bladder.t.test$conf.int)
+rat.CI.upper<-(37.76)
+rat.CI.lower<-(9.334)
+rat.95.CI<-paste(rat.CI.lower, rat.CI.upper, sep =" to ")
+
+rat.diff.sem
+rat.95.CI
+
+```
+
+
+Calculate R^2 for Table 30.2
+
+```{r}
+
+rat.lm <- lm(percent.E.max ~rat.age, data=rat.bladder.df.stack, var.equal=T) 
+
+rat.lm.summary <- summary(rat.lm)
+
+str(rat.lm.summary)
+
+R2 <- rat.lm.summary$r.squared
+R2 <- round(rat.lm.summary$r.squared,4)
+
+R2
+```
+
+### uilding the third (bottom) part of Table 30.2
+
+
+```{r}
+#The names of each row in column 1
+my.namesc <- c("95% Cl", "R²")
+
+#The information in column 2
+statoutputc <- c(rat.95.CI, R2)
+
+#put these into a dataframe
+Table30.2c <- data.frame (my.namesc, statoutputc)
+
+#change the names of the columns
+names (Table30.2c) <- c("DIFFERENCE BETWEEN MEANS", rat.diff.sem)
+
+#Use pander make this table look like the first (top) part of Table 30.2
+#Note: you need library(pander) here but we loaded it above.
+pander(Table30.2c, justify="left")
+```
+
+### Put all the parts of the table together to recreate Table 30.1
+
+Note: we exclude: the section on the F-test; see the introduction for why.
+
+
+```{r}
+#The names of each row in column 1
+my.rownames.all <- c("UNPAIRED t TEST", "P Value", "P Value Summary", "Are means significantly different? (P<0.05)", "One- or two-tail P value?", "t, df", "HOW BIG IS THE DIFFERENCE?", "Mean ± SEM of column A", "Mean ± SEM of column B","DIFFERENCE BETWEEN MEANS", "95% Cl", "R²")
+
+#The information in column 2
+statoutput.all <- c( " ", rat.p.value, rat.stars, "Yes", tails, rat.df.and.t, " ", old.mean.SEM, young.mean.SEM, rat.diff.sem, rat.95.CI, R2)
+
+#put these into a dataframe
+table30.2.all <- data.frame(my.rownames.all,statoutput.all)
+
+#change the names of the columns
+names(table30.2.all) <- c(" ", " ")
+
+#Use pander make this table look like the first (top) part of Table 30.2
+#Note: you need library(pander) here but we loaded it above.
+pander(table30.2.all, justify="left")
+```
+
+
+
+
+
+## Recreating Figures 30.2 on page 221 of Motlusky.  
+
+We'll make two versions of the graph.  First, we'll make Figure 30.2 with the x-axis labels straight instead of at an angle. Second, we'll set them at an angle to match the book more exactly.
+
+
+### Figure 30.2 with straight labels
+
+```{r}
+#Set plot area to allow two graphs
+par(mfrow = c(1,2))
+
+#margins for the left hand graph (bottem, left, top, right)
+par(mar = c(4,4,2,0))
+
+#Make the graph on the left
+beeswarm(percent.E.max ~ rat.age, data= rat.bladder.df.stack, ylim=c(0,80),  pch=21, col=c("black", "black"),bg=c("black","grey"), xaxt="n", xlab="", ylab=" ")
+
+#Add the points to denote the means
+points(percent.E.max.mean ~ rat.age, data = rat.bladder.means, pch = 3, cex=4)
+
+#Add the axis labes
+mtext(text = "Emax (percent)", side=2, line=2)
+mtext(text = "Old   Young", side=1)
+
+
+#Make the barplot on the right
+
+#margins for the right hand graph (bottem, left, top, right)
+par(mar=c(4,0,2,4))
+
+#I made a new object to plot the data so it would move the barplot over on this graph
+rat.mean.diff2<- c(rat.mean.diff, 0)
+
+#Make barplot
+barplot(rat.mean.diff2, xlab="", ylab =" ", ylim=c(-30,50), col.axis = "white", yaxt="n" )
+abline (h=0)
+
+#Add X-axis label
+mtext(text = "Mean B - Mean A  95% CI", side=1)
+
+#This allows you to keep plotting on the same graph but with new plot configurations
+par(new=TRUE)
+
+#Put your confidence intervals into an object
+ci<- c(37.76, 9.33 )
+
+#Plot the dot and confdence intervals
+plotCI(2.5, rat.mean.diff, li=ci[2], ui=ci[1], xlab="", ylab =" ", ylim=c(-30,50), xlim=c(0,3),yaxt="n", xaxt="n", pch=16)
+
+
+# draw an axis on the right,  
+z<- c(-20, 0, 20, 40)
+axis(4, at=z,col.axis="black", las=2)
+
+#label the axis on the right
+mtext("Difference Between Means", side = 4, line = 2.5)
+
+#Add all the text numbers to the graph
+text(x=0.75, y=30, "23.55", cex=0.8)
+text(x=2.5, y=42, "37.75", cex=0.8)
+text(x=2.5, y=4, "9.338", cex=0.8)
+
+```
+
+
+
+### Figure 30.2 with angled labels
+ 
+ This is Figure 30.2 with the X-axis labels titled at a 60 degree angle.  
+ 
+**Problem:** My Mean B - Mean A label is getting cut off because it goes outside of the margin here.  I'm not sure how to keep this tilted at 60 degrees and to keep the margins set so the two graphs are touching.  
+
+
+```{r}
+#Set plot area to allow two graphs
+par(mfrow = c(1,2))
+
+#margins for the left hand graph (bottem, left, top, right)
+par(mar = c(6,4,2,0))
+
+#Make the graph on the left
+beeswarm(percent.E.max ~ rat.age, data= rat.bladder.df.stack, ylim=c(0,80),  pch=21, col=c("black", "black"),bg=c("black","grey"), xaxt="n", xlab="", ylab=" ")
+
+#Add the points to denote the means
+points(percent.E.max.mean ~ rat.age, data = rat.bladder.means, pch = 3, cex=4)
+
+#Add the Y-axis label
+mtext(text = "Emax (percent)", side=2, line=2)
+
+#Put x-axis labels into a vector
+old.young.lables<-as.vector(c("  Old", "Young"))
+
+#configure the x-axix text using text(), note - I used text() instead of mtext because the text function allows you to tilt the text at an angle and I couldn't figure out how to do that with mtext
+#text(xlocation, y location, labels, srt is to rotate text at an angle, xpd)
+text(seq(1, 2, by=1), -14, labels = old.young.lables, srt = 60, xpd = TRUE)
+
+#Make the barplot on the right
+
+#margins for the right hand graph (bottem, left, top, right)
+par(mar=c(6,0,2,4))
+
+#I made a new object to plot the data so it would move the barplot over on this graph
+rat.mean.diff2<- c(rat.mean.diff, 0)
+
+#Make barplot
+barplot(rat.mean.diff2, xlab="", ylab =" ", ylim=c(-30,50), col.axis = "white", yaxt="n" )
+abline (h=0)
+
+#Put x-axis labels into a vector
+mean.CI.lables<-as.vector(c("Mean B - Mean A", "           95% CI"))
+
+#configure the x-axix text using text(), note - I used text() instead of mtext because the text function allows you to tilt the text at an angle and I couldn't figure out how to do that with mtext
+#text(xlocation, y location, labels, srt is to rotate text at an angle, xpd)
+text(x=c(0.25, 1.5), y= -52, labels = mean.CI.lables, srt = 60, xpd = TRUE)
+
+#This allows you to keep plotting on the same graph but with new plot configurations
+par(new=TRUE)
+
+#Put your confidence intervals into an object
+ci<- c(37.76, 9.33 )
+
+#Plot the dot and confdence intervals
+plotCI(2.5, rat.mean.diff, li=ci[2], ui=ci[1], xlab="", ylab =" ", ylim=c(-30,50), xlim=c(0,3),yaxt="n", xaxt="n", pch=16)
+
+
+# draw an axis on the right,  
+z<- c(-20, 0, 20, 40)
+axis(4, at=z,col.axis="black", las=2)
+
+#label the axis on the right
+mtext("Difference Between Means", side = 4, line = 2.5)
+
+#Add all the text numbers to the graph
+text(x=0.75, y=30, "23.55", cex=0.8)
+text(x=2.5, y=42, "37.75", cex=0.8)
+text(x=2.5, y=4, "9.338", cex=0.8)
+
+```
+
+
+## Recreating Figures 30.3 and Figure 30.4 on page 225 of Motlusky.   
+
+A quick way to get all the summary statistics you need for graphing in one table is to use doBy::summaryBy() to calculate the mean, standard deviation (SD), and standard error (SE) of the mean (you'll need the plotrix library to find SEM with summaryBy; you'll also need the doBy library to use summaryBy)  
+
+```{r}
+
+library(doBy)
+library(plotrix)
+
+#Calculate and save the table of mean, sd, SEM
+rat.summary.stats<-summaryBy(percent.E.max ~ rat.age, data=rat.bladder.df.stack, FUN = c(mean, sd, std.error), na.rm = T)
+
+#View table of summary stats
+rat.summary.stats
+
+```
+
+## Recreate Figure 30.3: Barplots using the standard deviation as the error bars
+
+```{r}
+
+library(gplots) 
+
+#set the plot area to allow 1 row and 2 columns of graphs
+par(mfrow = c(1,2))
+
+#adjust the margins of the plot area
+par(mar = c(4,4,1,1))
+
+#Make the barplot on the left
+barplot2(height = rat.summary.stats$percent.E.max.mean, names.arg = rat.summary.stats$rat.age, plot.ci =TRUE, ci.l=rat.summary.stats$percent.E.max.mean, ci.u = rat.summary.stats$percent.E.max.mean + rat.summary.stats$percent.E.max.sd , ylim=c(0,75), border="black", col="grey")
+
+mtext(text = "%Emax",side = 2,line = 2)
+mtext(text = "Mean ± SD",side = 3,line = -1.5)
+
+#Make the barplot on the right
+barplot2(height = rat.summary.stats$percent.E.max.mean, names.arg = rat.summary.stats$rat.age, plot.ci =TRUE, ci.l=rat.summary.stats$percent.E.max.mean - rat.summary.stats$percent.E.max.sd, ci.u = rat.summary.stats$percent.E.max.mean + rat.summary.stats$percent.E.max.sd , ylim=c(0,75), border="black", col="white")
+
+mtext(text = "%Emax",side = 2,line = 2)
+mtext(text = "Mean ± SD",side = 3,line = -1.5)
+
+```
+
+## MAKE Figure 30.4: Barplot using the standard error of the mean (SEM) as the error bars.
+
+```{r}
+library(gplots)
+
+#set the plot area to allow 1 row and 2 columns of graphs
+par(mfrow = c(1,2))
+
+#adjust the margins of the plot area
+par(mar = c(4,4,1,1))
+
+#Make the barplot on the left
+barplot2(height = rat.summary.stats$percent.E.max.mean, names.arg = rat.summary.stats$rat.age, plot.ci =TRUE, ci.l=rat.summary.stats$percent.E.max.mean, ci.u = rat.summary.stats$percent.E.max.mean + rat.summary.stats$percent.E.max.std.error , ylim=c(0,75), border="black", col="grey")
+
+mtext(text = "%Emax",side = 2,line = 2)
+mtext(text = "Mean ± SEM",side = 3,line = -1.5)
+
+#Make the barplot on the right
+barplot2(height = rat.summary.stats$percent.E.max.mean, names.arg = rat.summary.stats$rat.age, plot.ci =TRUE, ci.l=rat.summary.stats$percent.E.max.mean - rat.summary.stats$percent.E.max.std.error, ci.u = rat.summary.stats$percent.E.max.mean + rat.summary.stats$percent.E.max.std.error , ylim=c(0,75), border="black", col="white")
+
+mtext(text = "%Emax",side = 2,line = 2)
+mtext(text = "Mean ± SEM",side = 3,line = -1.5)
+
+```
+
+
+
+
+## Recreating Table 30.3 
+
+This table on page 229 summarizes hot to interpret SEM adn 95% CI error bars.
+
+```{r}
+#The names f each row in column 1
+my.rownames.303 <- c("SD", "SEM", "95% CI")
+
+#the information in column 2
+column.303a <- c("No conclusion", "P>0.05", "No conclusion")
+
+#the information in column 2
+column.303b <- c("No conclusion", "No conclusion", "P<<0.05")
+
+#put these into a dataframe
+table30.3 <- data.frame(my.rownames.303, column.303a,column.303b)
+
+#change the names of the columns
+names(table30.3) <- c("TYPE OF ERROR BAR", "CONCLUSION IF THEY OVERLAP", "CONCLUSION IF THEY DONT OVERLAP")
+
+
+#Use pander make this table look like the first (top) part of Table 30.2
+#Note: you need library(pander) here but we loaded it above.
+
+pander(table30.3, justify="left", caption = "Conclusions you can reach when two error bars do or do not overlap.  This applies to comparing two means with an unpaired t-test")
+
+```
+
+
+
+
+
+## Make Figure 30.5: Barplots using the 95% confidence interval as the error bars.
+
+The 95% confidence interval of the means describes the confidence that the true mean of the population lies within the calculated interval. This interval is calculated by taking the standard error of each mean and multiplying it by the appropriate z-score based on the confidence level you want (http://sphweb.bumc.bu.edu/otlt/MPH-Modules/BS/BS704_Confidence_Intervals/BS704_Confidence_Intervals_print.html). For a 95% Confidence level, the common z-score used is 1.962; this represents the standard approximation of the confidence interval for the t-statistic. 
+
+**Note:** Motulsky frequently discusses the confidence interval for the **difference** of the means (note: this is different than the 95% CI of the means). This interval directly relates to the p-value from a t-test, showing the certainty of the difference between the mean values of the two populations. When the difference of the means is plotted with its confidence interval, such as in the right-hand panel of Figure 30.2, if the interval crosses 0, then the p-value will be insignificant, and the null hypothesis might be true (the difference between the means is 0).
+
+```{r}
+#create an object with the CI distance from the means for both populations
+CI <- rat.summary.stats$percent.E.max.std.error*1.962
+
+#adjust the margins of the plot area
+par(mar = c(3,3,1,1))
+
+#make the barplot with 95% CI error bars
+barplot2(height = rat.summary.stats$percent.E.max.mean, names.arg = rat.summary.stats$rat.age, plot.ci =TRUE, ci.l=rat.summary.stats$percent.E.max.mean - CI, ci.u = rat.summary.stats$percent.E.max.mean + CI , ylim=c(0,75), border="black")
+
+mtext(text = "%Emax",side = 2,line = 2)
+mtext(text = "Mean ± 95% CI",side = 3,line = -1.5)
+```
+
+
+
+## References
+
+F-test of equality of variances, https://en.wikipedia.org/wiki/F-test_of_equality_of_variances; accessed on 20 Feb. 2017.  
+
+Frazier E. P., Schneider T., Michel M. C. 2006. Effects of gender, age and hypertension on beta-adrenergic receptor function in rat urinary bladder. Naunyn-Schmiedeberg's archives of pharmacology, 373(4), 300-309.    
+  
+Motulsky, H. 2010. Intuitive Biostatistcs A Nonmathematical Guide to Statistical Thinking. Second edition. New York, NY: Oxford University Press. 
+ 
+Rapporter Team. "Pander: An R Pandoc Writer."  http://rapporter.github.io/pander/#markdown-tables ; accessed on 20 Feb. 2017. 
+  
+Sullivan, Lisa. "Confidence Intervals." Boston University. http://sphweb.bumc.bu.edu/otlt/MPH-Modules/BS/BS704_Confidence_Intervals/BS704_Confidence_Intervals_print.html
+
+Whitlock M.C., Schluter D. 2009. The Analysis of Biological Data. Greenwood Village, CO: Roberts and Company Publishers.  
+  
+
+  
+## Biological Studies that used T-tests in their statistical analyses
+
+Crock LW, Kolber BJ, Morgan CD, Sadler KE, Vogt SK, Bruchas MR, Gereau IV RW. 2012. Central Amygdala Metabotropic Glutamae Receptor 5 in the modulation of visceral pain. The Journal of Neuroscience 32(41):14217-14226.  
+  
+Frazier L, Yu E, Sanner J, Liu F, Udtha M, Cron S, Croulter S, Bogaev RC. 2012. Gender differences in self-reported symptoms of depression among patients with acute coronary syndrome. Nursing Research and Practice: Article ID 109251, 1-5.  
+  
+Hamer KC, Hill JK, Benedick S, Mustaffa N, Sherratt TN, Maryati M, Chey VK. 2003. Ecology of Butterflies in Natural and Selectively Logged Forests of Northern Norneo: The Importance of Habitat Heterogeneity. Journal of Applied Ecology 40(1): 150-162.     
+  
+Volova T, Shishatskaya E, Sevastianov V, Efremov S, Mogilnaya O. 2003. Results of biomedical investigations of PHB and PHB/PHV. Biomedical Engineering Journal 16(2):125-133.    
+  
+Wager TD, Rilling JK, Smith EE, Sokolik A, Casey KL, Davidson RJ, Kosslyn SM, Rose RM, Cohen J. 2004. Placebo-induced changes in fMRI in the anticipation and experience of pain. Science 30:1162-1167.  
+  
+

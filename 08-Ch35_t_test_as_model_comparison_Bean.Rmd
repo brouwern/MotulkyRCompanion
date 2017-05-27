@@ -1,0 +1,158 @@
+# Motulksy Chapter 35 part 2: T-test as model comparison
+
+*Megan Bean with Nathan Brouwer*
+
+## Introduciton
+                  
+Student's t-test is probably the most recognized and commonly used satistical test in biology.  With most biologist today having the bare minimum statistic training most fall back on the student t-test to test if there is a "significant difference" between their control and experimental group.  The P value is extracted from the test and the rest is left to waste.  However, since a t-test is actually a form of "linear model" a t-test can do a great deal more than just deliever the greatly sought after P< 0.05.  We can use the test to compare models, look at residuals and other data checks that should be a part of standard data analysis.
+
+The best way to begin to understand this is by visualization. This is demonstrated in Motulsky Chapter 35 pg 281, Figure 35.3 (pg 281, 2nd ed) using the the rat bladder data that originated in Chapter 30.  This figure can be reproduced by through the following steps.  (see chapter 30 in Motulsky for background on this dataset)
+    
+### Creating the rat bladder data 
+
+We'll load the data into a dataframe with one column for the "old" rats and one columns for the "young" rats.
+
+```{r}
+df.rats <- data.frame(
+old = c(20.8,2.8,50.0,
+        33.3,38.9,29.4,
+        52.6,14.3),
+young = c(45.5,55.0,60.7, 
+          61.5,61.1,65.5,
+          42.9,37.5))
+```
+
+
+
+## Reshape data
+
+The above format woudl be ok if we were doing a t-test with t.test(), but we'lre going to be taking a  different approach to this analysis, so we need to reshape the data into a different format.  We'll use the melt() function in the reshape2 package.
+
+```{r, echo = F, cache = T,warning=FALSE}
+library(reshape2)
+df.rat.stack <- melt(df.rats,
+                     variable.name = "rat.age",
+                     value.name = "percent.E.max")
+
+
+```
+
+## Model the rat bladder data
+
+Instead of t.test, we'll model the data with the lm() function that is usually used for linear regression, ANCOVA, or ANOVA.  The fact that we can do a t-test, linear regression, ANCOVA and ANOVA with the same function hints at the fact that all of these appraoches, which usually show in in seperate chapters of text books under different names, are fundamentally the same statistical problem.
+
+To do a t-test with lm() we'll fit 2 models, a "null" model with only a slope, and a model that represents our hypothesis of interest, that E.max varies with rat age (old vs young.)
+
+```{r}
+# the null-hypothesis model
+m.null.rats<-lm(percent.E.max ~ 1, data = df.rat.stack)
+
+# the alternate hypothesis model
+m.alt.rats<-lm(percent.E.max ~ rat.age, data = df.rat.stack)
+```
+
+
+
+## Plot Data 
+
+
+Load packages for plotting
+```{r}
+library(gplots)
+library(ggplot2)
+library(beeswarm)
+library(doBy)
+```
+
+Plot with beeswarm
+```{r}
+par(mar = c(3,3.1,1,1))
+beeswarm(percent.E.max ~ rat.age,
+         data = df.rat.stack,
+         ylim = c(0,100),
+         col = c(1), 
+         pch = 16,     
+         labels = c("Old (X=0.0)","Young (X=1.0)"),
+         xlab = "",     
+         ylab = "")     
+mtext(text = "%Emax",
+      side = 2,
+      line = 2)
+ggplot(df.rat.stack, aes(x = rat.age, y = percent.E.max)) + 
+  geom_point(mapping = aes(x = rat.age, y = percent.E.max)) +
+  stat_smooth(method = "lm", col = "red")
+
+     
+```
+
+As shown in FIgure 35.3 a best fit regression line could runs from the mean of "old" to "young". As the line moves the 1 unit from old (x=0) to young (x=1) the regression line rises, creating a slope.  When comparing regression models a null model is represented by a horizonal line while a slope suggests a significant difference in the mean between the two groups and therefore supporting the alternative model. The t test also determines differences of the means. Because of this they have the same null models and the same p=values.  By subtracting the group mean differences given by the t test the slope of the regression line can be determined. 
+
+
+```{r}
+t.test(percent.E.max ~ rat.age, data=df.rat.stack)
+```
+
+Subtract 53.715(young mean)- 30.26(old mean) = 
+This can be confirmed by a summary call on the regression line
+```{r}
+lm.null.rats<-lm(percent.E.max ~ 1, df.rat.stack)
+lm.alt.rats<-lm(percent.E.max ~ rat.age, df.rat.stack)
+summary(lm.alt.rats)
+```
+
+In conclusion of this this shows that the p-values are similar
+
+##Residuals
+ 
+ We can also evaluate the residuals with the t test 
+ visually the residuals measure how close to the mean of the group a value is.
+ for the rat bladder data it looks like this:
+ 
+ 
+ 
+```{r}
+residualPlots(m.alt.rats)
+residualPlots(m.null.rats)
+
+```
+The better fit the data is to the model the closer the residuals will be to the mean (0), the graphs above show that the residuals in the alternative model were much more clustered around the 0 line.
+
+Another way to look at how well the data fits a model is by looking at the sum of squares
+ 
+##ANOVA/P VALUE
+```{r}
+tables<-read.csv("table.csv")
+library(knitr)
+kable(tables)
+```
+In Table 35.4 Shows more data that we can harvest from the t Test, but also a comparivative ANOVA as seen below.  THe sources of variation speak to the different groups/models.  THe total is the null, the "within groups" is the alternative and the "between groups" is the difference between the null and alternative. By divding the sum of squares by the degrees of freedom (df) you get the MS value if the null was true the alternative and between group MS/MS ratio (also known as teh F ratio) would be close to 1 but it is much higher at 12.47. From this table the all-important P value shows that it is below 0.05 but there is more that we can get from this.  
+
+
+
+```{r}
+anova(m.alt.rats,m.null.rats)
+
+```
+```{r}
+
+AIC(m.alt.rats)
+AIC(m.null.rats)
+```
+
+
+
+Overall it is important to not just look at the P-value.  Even this common t test has a great deal of information about the data that should not be overlooked.  Although it is helpful to see the t test in a new light with fresh eyes.  The fact that in the scientific community and specifically biologist take way advantage of this in a terrible way.Many of the even higher teir journals are riddled with papers with sloppy satistics (2). Most papers barely mention their statical work expect for the p-values and a small paragraph in the Methods section, as seen in the 2013 Shin et. al. paper (3). Althought the relevance of the material is understandable, scientist today don't need another excuse to keep with the t test (2).  
+
+In the world of qRTPCR/PCR molecular biologist have been keeping there satistics to just the student t Test (1).  Typically in a qRTPCR experiment looking at the expression of one gene in comparision to a control gene.  Many will do multiple group comparisions without corrections and with only a care for the p-value.  Becuase of this even after exhuastive searches through peer-reviewed papers one cannot find an example in molecular biology in which a t test has been used as a model comparison or really went more in depth than mentioning the type of t Test they used and with what program. But the tides are changing. With more qRTPCR scientists becoming more aware of their flawed analysis has led for a push for deeper anaylsis (1).  When it comes to High-throughput post-genomic studies are devling in to new more complicated multivarient methods (4). These changes are needed and the t test, although more interesting and helpful than the just a p value, it needs to be left behind in this field.  
+
+
+
+(1)Goni,R., García,P.,Foissac.S."The qPCR data statistical analysis",Integromics White Paper; September 2009 
+http://www.gene-quantification.com/integromics-qpcr-statistics-white-paper.pdf
+(2) Vaux,D. Research methods: Know when your numbers are significant;Nature
+    492,180-181;3 December 2012 http://www.nature.com/nature/journal/v492/n7428/full/492180a.html
+(3)Shin,R., Higuchi,M., Suhara,T.; Nitric Oxide Signaling Exerts Bidirectional Effects on Plasticity Inductions in Amygdala; PLoS One. 2013; 8(9): e74668. Published online 2013 Sep 25. doi: 10.1371/journal.pone.0074668 Published online 12 December 2012 
+s
+(4) Jeanmougin,M. ,Reynies,A.,Marisa,A.,Paccard, Nuel,G., Guedj,M.Should We Abandon the t-Test in the Analysis of Gene Expression Microarray Data: A Comparison of Variance Modeling Strategie;PLOS; Published: September 3, 2010
+    https://doi.org/10.1371/journal.pone.0012336
+

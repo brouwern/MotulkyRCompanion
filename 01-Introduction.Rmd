@@ -1,0 +1,14 @@
+# Introduction
+
+The goal of the book is to provide R code that allows readers to 
+
+1. Implement in R the statistical analyses found in Harvey Motulsky's *Intuitive Biostatistics, 2nd edition* (IB)
+2. Use R to create publication-quality recreations of key figures found in the book.
+
+This guide began as project for graduate students in the Department of Biological Sciences at Duquense University.
+
+Currently, the following chapters from the 2nd edition of IB are covered in this guide
+
+* 2-sample t-test
+* Paired t-test
+
